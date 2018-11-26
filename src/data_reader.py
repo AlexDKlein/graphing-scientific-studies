@@ -5,13 +5,16 @@ class DataReader():
         self.edges = edges
         self.nodes = nodes
 
-    def read_edges(self):
+    def read_edges(self, lim=None):
         with open(self.edges, 'r') as f:
-            for line in f: yield line.strip().split(',')
+            for i,line in enumerate(f): 
+                if lim and i == lim: break
+                yield line.strip().split(',')
 
-    def read_nodes(self):
+    def read_nodes(self, lim=None):
         with open(self.nodes, 'r') as f:
-            for line in f: 
+            for i,line in enumerate(f):
+                if lim and i == lim: break
                 yield line.strip().split('|')
 
     def write(self):
