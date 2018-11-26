@@ -1,0 +1,5 @@
+data/*
+.ipynb_checkpoints/*
+derby.log
+metastore_db/
+src/__pycache__/
