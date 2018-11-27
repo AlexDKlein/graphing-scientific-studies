@@ -17,14 +17,15 @@ class DataReader():
                 if lim and i == lim: break
                 yield line.strip().split('|')
 
-    def write(self):
-        self.edges = self.create_edges()
-        self.nodes = self.create_nodes()
+    def write(self, lim=None):
+        self.edges = self.create_edges(lim)
+        self.nodes = self.create_nodes(lim)
 
-    def create_edges(self):
+    def create_edges(self, lim=None):
         with open(self.edges, 'w') as f:
             with open(self.source) as s:
-                for line in s:
+                for i,line in enumerate(s):
+                    if lim and i == lim: break
                     entry = json.loads(line)
                     id_ = entry['id']
                     for dst in entry['outCitations']:
@@ -33,10 +34,11 @@ class DataReader():
                         f.writelines(f'{src},{id_}\n')
         return self.edges
 
-    def create_nodes(self):
+    def create_nodes(self, lim=None):
         with open(self.nodes, 'w') as f:
             with open(self.source) as s:
-                for line in s:
+                for i,line in enumerate(s):
+                    if lim and i == lim: break
                     entry = json.loads(line)
                     f.writelines('|'.join(str(entry[x]) if x in entry else '' for x in ('id','year','authors','entities')))
                     f.writelines('\n')
