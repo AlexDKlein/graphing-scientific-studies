@@ -9,7 +9,7 @@ class DataReader():
         with open(self.edges, 'r') as f:
             for i,line in enumerate(f): 
                 if lim and i == lim: break
-                yield line.strip().split(',')
+                yield line.strip().split('|')
 
     def read_nodes(self, lim=None):
         with open(self.nodes, 'r') as f:
@@ -29,9 +29,9 @@ class DataReader():
                     entry = json.loads(line)
                     id_ = entry['id']
                     for dst in entry['outCitations']:
-                        f.writelines(f'{id_},{dst}\n')
+                        f.writelines(f'{id_}|{dst}\n')
                     for src in entry['inCitations']:
-                        f.writelines(f'{src},{id_}\n')
+                        f.writelines(f'{src}|{id_}\n')
         return self.edges
 
     def create_nodes(self, lim=None):
