@@ -1,4 +1,4 @@
-def to_gexf(g, path, vertex_labels='id', edge_labels='id'):
+def to_gexf(g, path, dynamic=False):
     """
     Export a pyspark graphframe to a .gexf file for use in Gephi.
     ============
@@ -8,11 +8,11 @@ def to_gexf(g, path, vertex_labels='id', edge_labels='id'):
     ============
     Returns: None
     """
-    nodes = ''.join(g.vertices.rdd.map(lambda v: f'      <node id="{v["id"]}" label="{v[vertex_labels]}" />\n').collect())
-    edges = ''.join(g.edges.rdd.map(lambda e: f'      <edge id="{e["id"]}" source="{e["src"]}" target="{e["dst"]}" label="{e[edge_labels]}" />\n').collect())
+    nodes = ''.join(g.vertices.rdd.map(lambda v: f'      <node id="{v["id"]}" />\n').collect())
+    edges = ''.join(g.edges.rdd.map(lambda e: f'      <edge id="{e["id"]}" source="{e["src"]}" target="{e["dst"]}" {'start="{e['year']}" end="2018"' if dynamic else ''}/>\n').collect())
     string =f"""<?xml version="1.0" encoding="UTF-8"?>
     <gexf xmlns="http://www.gexf.net/1.2draft" version="1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.w3.org/2001/XMLSchema-instance">
-      <graph mode="static" defaultedgetype="directed" name="">
+      <graph mode="{'static' if not dynamic else 'dynamic'}" defaultedgetype="directed" name="">
         <nodes>
   {nodes}
         </nodes>
