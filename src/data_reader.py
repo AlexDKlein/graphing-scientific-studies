@@ -68,20 +68,25 @@ class RetractionFinder():
             with open(doc, 'r') as f:
                 for line in f:
                     entry = json.loads(line)
-                    pmid = entry['pmid'] if 'v' not in entry['pmid'] else entry['pmid'][:-2]
-                    if 'retracted' in entry['title'][:10].lower() \
-                        or self.pmids and pmid in self.pmids \
-                        or self.dois and entry['doi'] in self.dois \
-                        or any(entry[key] in values for key, values in self.criteria):
+                    if self.check_entry(entry):
                         self.found.append(entry)
             self.searched |= {doc}
 
     def search_stream(self, stream):
         for line in stream.iter_lines():
             entry = json.loads(line)
-            pmid = entry['pmid'] if 'v' not in entry['pmid'] else entry['pmid'][:-2]
-            if 'retracted' in entry['title'][:10].lower() \
-                or self.pmids and pmid in self.pmids \
-                or self.dois and entry['doi'] in self.dois \
-                or any(entry[key] in values for key, values in self.criteria):
+            if self.check_entry(entry):
                 self.found.append(entry)
+
+    def check_entry(self, entry):
+        pmid = entry['pmid'] if 'v' not in entry['pmid'] else entry['pmid'][:-2]
+        abstract = entry['paperAbstract']
+        doi = entry['doi']
+        title = entry['title'].lower()
+        return 'retract' in title \
+            or 'retract' in abstract \
+            or 'withdraw' in title \
+            or 'withdraw' in abstract \
+            or self.pmids and pmid in self.pmids \
+            or self.dois and doi in self.dois \
+            or any(entry[key] in values for key, values in self.criteria)
