@@ -1,5 +1,6 @@
 import boto3
 import time
+import json
 import pandas as pd
 from src.data_reader import DataReader, RetractionFinder
 from src.get_redacted import get_paper, load_redacted, get_doi, gen_retracted
