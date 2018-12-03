@@ -30,7 +30,7 @@ class DataReader():
                 for i,line in enumerate(s):
                     if lim and i == lim: break
                     entry = json.loads(line)
-                    id_ = entry['id']
+                    id_ = entry['id'] if 'id' in entry else entry['_id']
                     yr = entry['year'] if 'year' in entry else 1900
                     if not dynamic:
                         for dst in entry['outCitations']:
@@ -48,7 +48,8 @@ class DataReader():
                 for i,line in enumerate(s):
                     if lim and i == lim: break
                     entry = json.loads(line)
-                    f.writelines('|'.join(str(entry[x]) if x in entry else '' for x in ('id','year','authors')))
+                    f.writelines('|'.join(str(entry[x]) if x in entry else '' 
+                        for x in ('id' if 'id' in entry else '_id','year','authors')))
                     f.writelines('\n')
         return self.nodes
  
