@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import pymongo
 
 def get_doi(descr):
@@ -78,7 +79,7 @@ def format_dataframe(df):
 
     for col in X.columns:
         try:
-            X[col] = X[col].fillna(value=int(X[col].median()))
+            X[col] = fill_nan(X[col])
         except TypeError:
             pass
 
@@ -92,3 +93,9 @@ def load_dataframe(source='data/s2-corpus-00', limit=1000):
             if i == limit: break
             text += line + '\n'
     return pd.read_json(text, lines=-1)
+
+def fill_nan(seq):
+    return np.where(
+        np.isnan(seq),
+        np.random.choice(a=seq[~np.isnan(seq)], size=seq.shape),
+        seq)
