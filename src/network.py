@@ -5,6 +5,7 @@ import networkx as nx
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import GradientBoostingClassifier  
 
 class Network():
     def __init__(self, X, author_path=None, paper_path=None, collection=None):
@@ -129,7 +130,7 @@ class PaperNLP():
         self._tfidf = {}
         for field in fields:
             self._tfidf[field] = TfidfVectorizer()
-
+      
     def fit(self, X, y=None):
         X = X.copy()
         self.nodes = X
@@ -155,6 +156,7 @@ class PaperNLP():
                     .replace('withdraw', '')
                     .replace('retract', ''))
                     )
+        # return ({k: v for k,v in output.items()}, X['_id'].values)
         return {k: pd.DataFrame(v.toarray(), index=X['_id']) for k,v in output.items()}
 
     def similarity_matrix(self, X):
@@ -162,10 +164,11 @@ class PaperNLP():
         similarity = {}
         for k,v in transformed.items():
             similarity[k] = pd.DataFrame(cosine_similarity(v), 
-                                columns=X['_id'].values, 
-                                index=X['_id'].values)
+                                columns=X['_id'], 
+                                index=X['_id'])
         return similarity
-    
+        
+
 class EdgeSplitter():
     '''Wrapper class for node/edge split methods.
     ==============================================
@@ -176,7 +179,15 @@ class EdgeSplitter():
         X0, Xt = train_test_split(nodes, **kwargs)
         E0, Et = [self.split_edges(X, edges).append(self.random_edges(X, n)) 
                 for X in (X0, Xt)]
-        return X0, E0, Xt, Et
+        return X0, Xt, E0, Et
+    
+    @staticmethod
+    def transform(X, n=5.0, include_random=False, create_missing=False):
+        E = EdgeSplitter.create_edges(X, create_missing=create_missing)
+        E['edge'] = 1
+        E = E.append(EdgeSplitter.random_edges(X, int(n*len(X))), sort=False)
+        E.drop(['weight','id'], axis=1, inplace=True)
+        return E
 
     @staticmethod
     def split_edges(nodes, edges):
@@ -195,6 +206,30 @@ class EdgeSplitter():
             if n1!=n2 and [n1,n2]: lst.append([n1, n2,0])
         Z = pd.DataFrame(np.unique(lst,axis=0), columns=['src', 'dst', 'edge'])
         return Z
+
+    @staticmethod
+    def create_edges(X, in_='inCitations', out_='outCitations', directed=False, create_missing=False):
+        edge_list = []
+        nodes_set = set(X['_id'].values)
+        for dst, srcs in X[in_].iteritems():
+            for src in srcs: 
+                if create_missing or (src in nodes_set and dst in nodes_set):
+                    if not directed:
+                        edge_list.append(sorted((src, str(dst))))
+                    else:
+                        edge_list.append((src, dst))
+        if out_ is not None:
+            for src, dsts in X[out_].iteritems():
+                for dst in dsts: 
+                    if create_missing or (src in nodes_set and dst in nodes_set):
+                        edge_list.append([src, dst])
+        edges = pd.DataFrame(edge_list, columns=['src', 'dst'])
+        edges['id'] = edges.index
+        edges['weight'] = 1
+        edges = edges.groupby(['src','dst']).agg(
+                {'id':'first',
+                'weight': 'sum'}).reset_index()
+        return edges
 
 def adj_matrix(edges, nodes=None, source_col='source', target_col='target'):
     '''Create a pandas DataFrame containing the adjacency matrix described by a 
