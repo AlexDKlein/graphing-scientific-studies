@@ -138,7 +138,9 @@ class PaperNLP():
             tfidf.fit(
                 X[field].apply(lambda x: 
                     (x if isinstance(x, str)
-                     else ' '.join(x))
+                     else ' '.join(x) 
+                     if not isinstance(x, float)
+                     else '')
                     .lower()
                     .replace('withdraw', '')
                     .replace('retract', ''))
@@ -151,7 +153,9 @@ class PaperNLP():
             output[field] = tfidf.transform(
                 X[field].apply(lambda x: 
                     (x if isinstance(x, str)
-                     else ' '.join(x))
+                     else ' '.join(x)
+                     if not isinstance(x, float)
+                     else '')
                     .lower()
                     .replace('withdraw', '')
                     .replace('retract', ''))
