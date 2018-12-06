@@ -46,7 +46,7 @@ class Recommender():
                        self._nodes['year'].loc[self._nodes['_id'].values].values)
         E['age'] = E['age'] = np.where(E['age'].isnull(), 0, E['age'])
         pred = self._model.predict_proba(E)[:, 1]
-        return self._nodes.iloc[np.argsort(pred)[::-1][1:k]]
+        return self._nodes.iloc[np.argsort(pred)[::-1][1:k+1]]
 
     def predict_one(self, x, y):
         xt,yt = self.nlp.transform(x), self.nlp.transform(y)
@@ -58,6 +58,18 @@ class Recommender():
 
     def prompt(self):
         pass
+
+    def _transform_edges(self, E, X):
+        E = E.copy()
+        # y = y[np.isin(E['dst'], X['_id']) & np.isin(E['src'], X['_id'])]
+        # E = E[np.isin(E['dst'], X['_id']) & np.isin(E['src'], X['_id'])]
+        src = self.nlp.transform(X.loc[E['src']])
+        dst = self.nlp.transform(X.loc[E['dst']])
+        for field in self.nlp._tfidf:
+            E[field + '_similarity'] = ((src[field] @ dst[field].T).sum(axis=1)).values.ravel()
+        E['age'] = abs(X.loc[E['src']]['year'].values - X.loc[E['dst']]['year'].values)
+        E['age'] = E['age'] = np.where(E['age'].isnull(), 0, E['age'])
+        return E
 
     @staticmethod
     def norm(x):
@@ -88,5 +100,3 @@ class InfluenceModel():
         y=references['isInfluential']
         return X,y
 
-class EdgeConverter():
-    pass
