@@ -172,14 +172,15 @@ class PaperNLP():
                                 index=X['_id'])
         return similarity
         
-
 class EdgeSplitter():
     '''Wrapper class for node/edge split methods.
     ==============================================
     Usage: X0,E0,Xt,Et = EdgeSplitter().split(X,E)
     ==============================================
     '''
-    def split(self, nodes, edges, n=50000, **kwargs):
+    def split(self, nodes, edges, n=10.0, **kwargs):
+        if isinstance(n, float):
+            n = int(n*len(edges))
         X0, Xt = train_test_split(nodes, **kwargs)
         E0, Et = [self.split_edges(X, edges).append(self.random_edges(X, n)) 
                 for X in (X0, Xt)]
@@ -253,6 +254,7 @@ def adj_matrix(edges, nodes=None, source_col='source', target_col='target'):
            np.array([itm in nodes_set for itm in edges['target']])
     g = nx.Graph(edges[mask].loc[:, ['source', 'target']])
     adj = nx.adj_matrix(g, nodelist=nodes['_id'].values)
+    return adjm
     adj_df = pd.DataFrame(adj.toarray())
     adj_df.index = nodes['_id'].values
     adj_df.columns = nodes['_id'].values

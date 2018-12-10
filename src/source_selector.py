@@ -16,13 +16,8 @@ class Recommender():
         E = splitter.transform(X)
         E,y = E.drop('edge', axis=1), E['edge']
         self.nlp.fit(X)
-        S = self.nlp.similarity_matrix(X)
-        for field in self.nlp._tfidf:
-            E[field + '_similarity'] = S[field].lookup(col_labels=E['src'], row_labels=E['dst'])
-        E['age'] = abs(X['year'].loc[E['dst'].values].values - 
-                       X['year'].loc[E['src'].values].values)
-        E['age'] = E['age'] = np.where(E['age'].isnull(), 0, E['age'])
-        self._model.fit(E.drop(columns=['src','dst'], axis=1), y.astype(int).values.reshape(-1,1))
+        E = self.transform(E, X)
+        self._model.fit(E, y.astype(int).values)
         self._transformed_nodes = self.nlp.transform(self._nodes)
         return self
 
@@ -36,7 +31,7 @@ class Recommender():
             E[field + '_similarity'] = S[field].lookup(col_labels=E['src'], row_labels=E['dst'])
         return self._model.predict_proba(E.drop(columns=['src','dst'], axis=1))
 
-    def predict(self, x, k=5):
+    def predict(self, x):
         t = self.nlp.transform(x)
         T = self._transformed_nodes
         E = pd.DataFrame()
@@ -45,10 +40,15 @@ class Recommender():
         E['age'] = abs(x['year'] if 'year' in x else 0 - 
                        self._nodes['year'].loc[self._nodes['_id'].values].values)
         E['age'] = E['age'] = np.where(E['age'].isnull(), 0, E['age'])
-        pred = self._model.predict_proba(E)[:, 1]
+        return self._model.predict_proba(E)[:, 1]
+    
+    def recommend(self, x, k=5):
+        pred = self.predict(x)
         return self._nodes.iloc[np.argsort(pred)[::-1][1:k+1]]
 
     def predict_one(self, x, y):
+        if isinstance(x, pd.Series): x = pd.DataFrame(x).T
+        if isinstance(y, pd.Series): y = pd.DataFrame(y).T
         xt,yt = self.nlp.transform(x), self.nlp.transform(y)
         E = pd.DataFrame()
         for field in self.nlp._tfidf:
@@ -56,13 +56,23 @@ class Recommender():
         E['age'] = abs(x['year'].values - y['year'].values)
         return self._model.predict_proba(E)[:, 1][0]
 
+    def transform(self, E, X):
+        E = E.copy()
+        S = self.nlp.similarity_matrix(X)
+        for field in self.nlp._tfidf:
+            E[field + '_similarity'] = S[field].lookup(col_labels=E['src'], row_labels=E['dst'])
+        E['age'] = abs(X['year'].loc[E['dst'].values].values - 
+                       X['year'].loc[E['src'].values].values)
+        E['age'] = E['age'] = np.where(E['age'].isnull(), 0, E['age'])
+        E.drop(columns=[col for col in ('src','dst','edge') if col in E.columns],
+               axis=1, inplace=True)
+        return E
+
     def prompt(self):
         pass
 
     def _transform_edges(self, E, X):
         E = E.copy()
-        # y = y[np.isin(E['dst'], X['_id']) & np.isin(E['src'], X['_id'])]
-        # E = E[np.isin(E['dst'], X['_id']) & np.isin(E['src'], X['_id'])]
         src = self.nlp.transform(X.loc[E['src']])
         dst = self.nlp.transform(X.loc[E['dst']])
         for field in self.nlp._tfidf:
@@ -70,6 +80,10 @@ class Recommender():
         E['age'] = abs(X.loc[E['src']]['year'].values - X.loc[E['dst']]['year'].values)
         E['age'] = E['age'] = np.where(E['age'].isnull(), 0, E['age'])
         return E
+
+    def predict_proba(self, E, X):
+        E = self.transform(E,X)
+        return self._model.predict_proba(E)[:, 1]
 
     @staticmethod
     def norm(x):
