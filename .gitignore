@@ -3,3 +3,5 @@ data/*
 derby.log
 metastore_db/
 src/__pycache__/
+*.gexf
+*.gephi
