@@ -49,3 +49,91 @@ class Splitter():
         y = np.append(y, rand_y, axis=0)
         return E,y
     
+    @staticmethod
+    def create_edge_dataframe(X, in_='inCitations', out_='outCitations', directed=False, create_missing=False):
+        edge_list = []
+        nodes_set = set(X['_id'].values)
+        for dst, srcs in X[in_].iteritems():
+            for src in srcs: 
+                if create_missing or (src in nodes_set and dst in nodes_set):
+                    if not directed:
+                        edge_list.append(sorted((src, str(dst))))
+                    else:
+                        edge_list.append((src, dst))
+        if out_ is not None:
+            for src, dsts in X[out_].iteritems():
+                for dst in dsts: 
+                    if create_missing or (src in nodes_set and dst in nodes_set):
+                        edge_list.append([src, dst])
+        edges = pd.DataFrame(edge_list, columns=['src', 'dst'])
+        edges['id'] = edges.index
+        edges['weight'] = 1
+        edges = edges.groupby(['src','dst']).agg(
+                {'id':'first',
+                'weight': 'sum'}).reset_index()
+        return edges
+
+
+class EdgeSplitter():
+    '''Wrapper class for node/edge split methods.
+    ==============================================
+    Usage: X0,E0,Xt,Et = EdgeSplitter().split(X,E)
+    ==============================================
+    '''
+    def split(self, nodes, edges, n=10.0, **kwargs):
+        if isinstance(n, float):
+            n = int(n*len(edges))
+        X0, Xt = train_test_split(nodes, **kwargs)
+        E0, Et = [self.split_edges(X, edges).append(self.random_edges(X, n)) 
+                for X in (X0, Xt)]
+        return X0, Xt, E0, Et
+    
+    @staticmethod
+    def transform(X, n=5.0, include_random=False, create_missing=False):
+        E = EdgeSplitter.create_edges(X, create_missing=create_missing)
+        E['edge'] = 1
+        E = E.append(EdgeSplitter.random_edges(X, int(n*len(X))), sort=False)
+        E.drop(['weight','id'], axis=1, inplace=True)
+        return E
+
+    @staticmethod
+    def split_edges(nodes, edges):
+        lst = []
+        nodes_set = set(nodes['_id'].values)
+        for src, dst in edges.loc[:, ['src','dst']].values:
+            if src in nodes_set and dst in nodes_set:
+                lst.append((src,dst, 1))
+        return pd.DataFrame(lst,  columns=['src','dst','edge'])
+
+    @staticmethod
+    def random_edges(X, n=50000):
+        lst = []
+        for _ in range(n): 
+            n1,n2 = sorted(np.random.choice(a=X['_id'], size=(2)))
+            if n1!=n2 and [n1,n2]: lst.append([n1, n2,0])
+        Z = pd.DataFrame(np.unique(lst,axis=0), columns=['src', 'dst', 'edge'])
+        return Z
+
+    @staticmethod
+    def create_edges(X, in_='inCitations', out_='outCitations', directed=False, create_missing=False):
+        edge_list = []
+        nodes_set = set(X['_id'].values)
+        for dst, srcs in X[in_].iteritems():
+            for src in srcs: 
+                if create_missing or (src in nodes_set and dst in nodes_set):
+                    if not directed:
+                        edge_list.append(sorted((src, str(dst))))
+                    else:
+                        edge_list.append((src, dst))
+        if out_ is not None:
+            for src, dsts in X[out_].iteritems():
+                for dst in dsts: 
+                    if create_missing or (src in nodes_set and dst in nodes_set):
+                        edge_list.append([src, dst])
+        edges = pd.DataFrame(edge_list, columns=['src', 'dst'])
+        edges['id'] = edges.index
+        edges['weight'] = 1
+        edges = edges.groupby(['src','dst']).agg(
+                {'id':'first',
+                'weight': 'sum'}).reset_index()
+        return edges

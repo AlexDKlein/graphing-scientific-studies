@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.sparse import coo_matrix
-from .util.Util import power_iteration
+from .util import Util
 
 class Node():
     def __init__(self, x):
@@ -179,7 +179,7 @@ class Network():
             del self.nodes[node]
         
     def page_rank(self):
-        pg_ranks = power_iteration(self.adj_matrix(), 50)
+        pg_ranks = Util.power_iteration(self.adj_matrix(), 50)
         return {node: rnk for node,rnk in zip(self.nodes.keys(), pg_ranks)}
     
     @property

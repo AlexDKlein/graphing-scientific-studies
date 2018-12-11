@@ -58,3 +58,47 @@ class Util():
         A/= np.sqrt((A * A).sum(axis=1))
         A = np.where(np.isfinite(A), A, 0)
         return C*(A.T @ S @ A) + np.identity(A.shape[0])
+
+    @staticmethod
+    def expand_feature(seq):
+        out = []
+        for itm in seq:
+            out += itm
+        return out
+
+    @staticmethod
+    def repeat_itms(seq, n):
+        if isinstance(seq, pd.Series):
+            return Util.expand_feature(n * seq.apply(lambda x: [x]))
+        return list(map(lambda x,y: [x] * y, seq, n))
+
+    @staticmethod
+    def repeat_rows(X, n):
+        df = pd.DataFrame()
+        for col in X.columns:
+            df[col] = Util.repeat_itms(X[col], n)
+        return df
+
+    @staticmethod
+    def create_authors(X, **kwargs):
+        authors = pd.DataFrame(expand_feature(X['authors']))
+        authors['papers'] = Util.expand_feature(Util.repeat_itms(X.index, X['authors'].apply(len)))
+        authors['papers'] = authors['papers'].apply(lambda x: [x])
+        X = repeat_rows(X, X['authors'].apply(len))
+        
+        authors['id'] = authors['ids'].apply(lambda x: x[0] if x else -1).astype(int)
+        authors['missing_id'] = authors['ids'] == -1
+        authors['coAuthors'] = (
+            X['authors']
+            .apply(lambda x: [itm['ids'] for itm in x])
+            .apply(Util.expand_feature)
+        )
+        for field in kwargs:
+            authors[field] = X[field]
+        kwargs['name'] = 'first'
+        kwargs['coAuthors'] = 'sum'
+        kwargs['papers'] = 'sum'
+        kwargs['missing_id']= 'first'
+        authors = authors.groupby('id').agg(kwargs)
+        return authors.reset_index()
+
