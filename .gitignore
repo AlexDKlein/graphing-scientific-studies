@@ -5,3 +5,8 @@ metastore_db/
 src/__pycache__/
 *.gexf
 *.gephi
+gexf/*
+misc/*
+59e60d07-f327-4ab7-a3c6-71ee34141dce/
+.DS_Store
+src/cleanup.py
