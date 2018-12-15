@@ -5,8 +5,9 @@ import numpy as np
 import random
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
-from .graphing import create_authors
-from .network import EdgeSplitter
+from .util import Util
+from .splitter import Splitter
+
 
 class ComponentCreator():
     def __init__(self, collection):
@@ -23,7 +24,7 @@ class ComponentCreator():
                                         component=component, depth=0, v=v)
         if max_coauther_distance > 0:
             df = self.paper_lookup(*component)
-            authors = create_authors(df)
+            authors = Util.create_authors(df)
             for author in authors['id']:
                 component = self._mixed_construct(author, max_paper_distance=max_coauther_distance,
                                 max_coauther_distance=max_coauther_distance - 1, v=v, 
@@ -41,7 +42,7 @@ class ComponentCreator():
             *self._mixed_construct(seed_id, **kwargs)
         )
         X.index = X['_id']
-        E = EdgeSplitter.create_edges(X)
+        E = Splitter.create_edge_dataframe(X)
         if not create_missing: E = E[E['weight'] > 1]
         return E,X
     
@@ -58,7 +59,7 @@ class ComponentCreator():
             *self._random_construct(min_size)
         )
         X.index = X['_id']
-        E = EdgeSplitter.create_edges(X)
+        E = Splitter.create_edge_dataframe(X)
         if not create_missing: E = E[E['weight'] > 1]
         return E,X
 
